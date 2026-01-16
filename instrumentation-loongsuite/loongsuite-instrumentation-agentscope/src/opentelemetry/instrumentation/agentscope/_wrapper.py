@@ -74,7 +74,9 @@ class AgentScopeChatModelWrapper:
         try:
             last_chunk = None
             first_token_time = None
-            token_times = []
+            prev_token_time = None
+            time_diffs_sum = 0.0
+            time_diffs_count = 0
             chunk_count = 0
             
             async for chunk in generator:
@@ -88,9 +90,12 @@ class AgentScopeChatModelWrapper:
                         first_token_time - invocation.monotonic_start_s
                     )
                 
-                # Record token times for calculating time between tokens
-                token_times.append(current_time)
+                # Calculate time between tokens incrementally to save memory
+                if prev_token_time is not None:
+                    time_diffs_sum += current_time - prev_token_time
+                    time_diffs_count += 1
                 
+                prev_token_time = current_time
                 last_chunk = chunk
                 yield chunk
 
@@ -116,29 +121,22 @@ class AgentScopeChatModelWrapper:
                     invocation.response_id = getattr(last_chunk, "id", None)
                 
                 # Calculate timing metrics
-                if len(token_times) > 0 and invocation.monotonic_start_s is not None:
+                if chunk_count > 0 and invocation.monotonic_start_s is not None:
                     end_time = timeit.default_timer()
                     total_time = end_time - invocation.monotonic_start_s
                     
-                    # Time per output token (using actual output token count if available)
+                    # Time per output token (only set if we have actual token count)
+                    # Note: We prefer not to use chunk count as it doesn't reliably
+                    # correspond to token count and could produce misleading metrics
                     if invocation.output_tokens is not None and invocation.output_tokens > 0:
                         invocation.time_per_output_token_s = (
                             total_time / invocation.output_tokens
                         )
-                    elif chunk_count > 0:
-                        # Fallback: use chunk count as approximation if output_tokens not available
-                        # Note: This assumes one chunk per token, which may not be accurate
-                        # for all LLM responses, but provides a reasonable approximation
-                        invocation.time_per_output_token_s = total_time / chunk_count
                     
-                    # Average time between consecutive tokens
-                    if len(token_times) > 1:
-                        time_diffs = [
-                            token_times[i] - token_times[i - 1]
-                            for i in range(1, len(token_times))
-                        ]
+                    # Average time between consecutive tokens (calculated incrementally)
+                    if time_diffs_count > 0:
                         invocation.time_between_token_s = (
-                            sum(time_diffs) / len(time_diffs)
+                            time_diffs_sum / time_diffs_count
                         )
 
             self._handler.stop_llm(invocation)

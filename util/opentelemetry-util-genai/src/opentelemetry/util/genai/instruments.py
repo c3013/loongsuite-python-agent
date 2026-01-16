@@ -49,6 +49,8 @@ _GEN_AI_CLIENT_TOKEN_TIMING_BUCKETS = [
     1.0,    # 1s
     2.0,
     5.0,
+    10.0,   # 10s
+    30.0,   # 30s
 ]
 
 
