@@ -8,6 +8,10 @@ OpenTelemetry instrumentation for [AgentScope](https://github.com/agentscope-ai/
 - **Metrics**: Performance metrics following OpenTelemetry GenAI semantic conventions
   - `gen_ai.client.operation.duration`: Operation duration in seconds
   - `gen_ai.client.token.usage`: Token usage for input and output
+  - `gen_ai.client.time_to_first_token`: Time to first token for streaming responses (seconds)
+  - `gen_ai.client.time_per_output_token`: Average time per output token (seconds)
+  - `gen_ai.client.time_between_token`: Average time between consecutive tokens (seconds)
+  - `gen_ai.usage.prompt_tokens_details.cached_tokens`: Number of cached tokens from prompt
 - **Events**: Detailed event logging for messages and choices
 
 ## Installation
