@@ -55,9 +55,28 @@ class AgentScopeChatModelWrapper:
         self, generator: AsyncGenerator, invocation: LLMInvocation
     ) -> AsyncGenerator:
         """Wrap streaming response to update invocation when done."""
+        import timeit
+        
         try:
             last_chunk = None
+            first_token_time = None
+            token_times = []
+            chunk_count = 0
+            
             async for chunk in generator:
+                chunk_count += 1
+                current_time = timeit.default_timer()
+                
+                # Record time to first token
+                if first_token_time is None and invocation.monotonic_start_s is not None:
+                    first_token_time = current_time
+                    invocation.time_to_first_token_s = (
+                        first_token_time - invocation.monotonic_start_s
+                    )
+                
+                # Record token times for calculating time between tokens
+                token_times.append(current_time)
+                
                 last_chunk = chunk
                 yield chunk
 
@@ -73,9 +92,38 @@ class AgentScopeChatModelWrapper:
                     invocation.output_tokens = getattr(
                         last_chunk.usage, "output_tokens", None
                     )
+                    
+                    # Extract cached tokens if available
+                    if hasattr(last_chunk.usage, "prompt_tokens_details"):
+                        prompt_tokens_details = getattr(
+                            last_chunk.usage, "prompt_tokens_details", None
+                        )
+                        if prompt_tokens_details is not None:
+                            invocation.cached_tokens = getattr(
+                                prompt_tokens_details, "cached_tokens", None
+                            )
 
                 if hasattr(last_chunk, "id"):
                     invocation.response_id = getattr(last_chunk, "id", None)
+                
+                # Calculate timing metrics
+                if len(token_times) > 0 and invocation.monotonic_start_s is not None:
+                    end_time = timeit.default_timer()
+                    total_time = end_time - invocation.monotonic_start_s
+                    
+                    # Time per output token (total time / number of chunks)
+                    if chunk_count > 0:
+                        invocation.time_per_output_token_s = total_time / chunk_count
+                    
+                    # Average time between consecutive tokens
+                    if len(token_times) > 1:
+                        time_diffs = [
+                            token_times[i] - token_times[i - 1]
+                            for i in range(1, len(token_times))
+                        ]
+                        invocation.time_between_token_s = (
+                            sum(time_diffs) / len(time_diffs)
+                        )
 
             self._handler.stop_llm(invocation)
         except Exception as e:
@@ -142,6 +190,16 @@ class AgentScopeChatModelWrapper:
                     invocation.output_tokens = getattr(
                         result.usage, "output_tokens", None
                     )
+                    
+                    # Extract cached tokens if available
+                    if hasattr(result.usage, "prompt_tokens_details"):
+                        prompt_tokens_details = getattr(
+                            result.usage, "prompt_tokens_details", None
+                        )
+                        if prompt_tokens_details is not None:
+                            invocation.cached_tokens = getattr(
+                                prompt_tokens_details, "cached_tokens", None
+                            )
 
                 invocation.response_model = invocation.request_model
                 invocation.response_finish_reasons = ["stop"]

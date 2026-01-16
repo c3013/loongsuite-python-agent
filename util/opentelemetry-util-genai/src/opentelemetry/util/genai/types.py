@@ -264,6 +264,14 @@ class LLMInvocation:
     populated by the ExtendedTelemetryHandler when stopping an invocation
     with multimodal data.
     """
+    time_to_first_token_s: float | None = None  # LoongSuite Extension
+    """Time to first token in streaming responses (seconds)."""
+    time_per_output_token_s: float | None = None  # LoongSuite Extension
+    """Average time per output token (seconds)."""
+    time_between_token_s: float | None = None  # LoongSuite Extension
+    """Average time between consecutive tokens (seconds)."""
+    cached_tokens: int | None = None  # LoongSuite Extension
+    """Number of cached tokens from prompt_tokens_details."""
 
 
 @dataclass
