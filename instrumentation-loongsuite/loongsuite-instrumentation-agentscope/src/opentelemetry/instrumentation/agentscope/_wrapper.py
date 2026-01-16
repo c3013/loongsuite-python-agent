@@ -34,6 +34,21 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+def _extract_cached_tokens(usage):
+    """Extract cached tokens from usage object if available.
+    
+    Args:
+        usage: Usage object that may contain prompt_tokens_details
+        
+    Returns:
+        Number of cached tokens or None
+    """
+    prompt_tokens_details = getattr(usage, "prompt_tokens_details", None)
+    if prompt_tokens_details is not None:
+        return getattr(prompt_tokens_details, "cached_tokens", None)
+    return None
+
+
 class AgentScopeChatModelWrapper:
     """Wrapper for ChatModelBase that hijacks __init__ to replace __call__."""
 
@@ -94,14 +109,9 @@ class AgentScopeChatModelWrapper:
                     )
                     
                     # Extract cached tokens if available
-                    if hasattr(last_chunk.usage, "prompt_tokens_details"):
-                        prompt_tokens_details = getattr(
-                            last_chunk.usage, "prompt_tokens_details", None
-                        )
-                        if prompt_tokens_details is not None:
-                            invocation.cached_tokens = getattr(
-                                prompt_tokens_details, "cached_tokens", None
-                            )
+                    invocation.cached_tokens = _extract_cached_tokens(
+                        last_chunk.usage
+                    )
 
                 if hasattr(last_chunk, "id"):
                     invocation.response_id = getattr(last_chunk, "id", None)
@@ -111,8 +121,13 @@ class AgentScopeChatModelWrapper:
                     end_time = timeit.default_timer()
                     total_time = end_time - invocation.monotonic_start_s
                     
-                    # Time per output token (total time / number of chunks)
-                    if chunk_count > 0:
+                    # Time per output token (using actual output token count if available)
+                    if invocation.output_tokens is not None and invocation.output_tokens > 0:
+                        invocation.time_per_output_token_s = (
+                            total_time / invocation.output_tokens
+                        )
+                    elif chunk_count > 0:
+                        # Fallback: use chunk count if output_tokens not available
                         invocation.time_per_output_token_s = total_time / chunk_count
                     
                     # Average time between consecutive tokens
@@ -192,14 +207,9 @@ class AgentScopeChatModelWrapper:
                     )
                     
                     # Extract cached tokens if available
-                    if hasattr(result.usage, "prompt_tokens_details"):
-                        prompt_tokens_details = getattr(
-                            result.usage, "prompt_tokens_details", None
-                        )
-                        if prompt_tokens_details is not None:
-                            invocation.cached_tokens = getattr(
-                                prompt_tokens_details, "cached_tokens", None
-                            )
+                    invocation.cached_tokens = _extract_cached_tokens(
+                        result.usage
+                    )
 
                 invocation.response_model = invocation.request_model
                 invocation.response_finish_reasons = ["stop"]
