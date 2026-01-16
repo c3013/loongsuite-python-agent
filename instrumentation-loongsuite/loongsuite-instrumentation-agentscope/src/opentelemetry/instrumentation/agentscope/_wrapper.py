@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import timeit
 from functools import wraps
 from typing import Any, AsyncGenerator
 
@@ -70,8 +71,6 @@ class AgentScopeChatModelWrapper:
         self, generator: AsyncGenerator, invocation: LLMInvocation
     ) -> AsyncGenerator:
         """Wrap streaming response to update invocation when done."""
-        import timeit
-        
         try:
             last_chunk = None
             first_token_time = None
@@ -127,7 +126,9 @@ class AgentScopeChatModelWrapper:
                             total_time / invocation.output_tokens
                         )
                     elif chunk_count > 0:
-                        # Fallback: use chunk count if output_tokens not available
+                        # Fallback: use chunk count as approximation if output_tokens not available
+                        # Note: This assumes one chunk per token, which may not be accurate
+                        # for all LLM responses, but provides a reasonable approximation
                         invocation.time_per_output_token_s = total_time / chunk_count
                     
                     # Average time between consecutive tokens

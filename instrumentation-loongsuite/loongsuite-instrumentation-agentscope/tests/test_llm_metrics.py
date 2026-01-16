@@ -2,9 +2,10 @@
 """Tests for LLM-specific metrics instrumentation."""
 
 import pytest
-from opentelemetry import metrics
+from opentelemetry import metrics, trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+from opentelemetry.sdk.trace import TracerProvider
 
 from opentelemetry.util.genai.types import LLMInvocation
 from opentelemetry.util.genai.metrics import InvocationMetricsRecorder
@@ -19,8 +20,13 @@ class TestLLMMetrics:
         reader = InMemoryMetricReader()
         provider = MeterProvider(metric_readers=[reader])
         return provider, reader
+    
+    @pytest.fixture
+    def tracer_provider(self):
+        """Create a tracer provider."""
+        return TracerProvider()
 
-    def test_time_to_first_token_metric(self, meter_provider):
+    def test_time_to_first_token_metric(self, meter_provider, tracer_provider):
         """Test that time_to_first_token metric is recorded."""
         provider, reader = meter_provider
         meter = provider.get_meter(__name__)
@@ -35,10 +41,6 @@ class TestLLMMetrics:
         )
 
         # Create a mock span (we need a span to record metrics)
-        from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
-
-        tracer_provider = TracerProvider()
         tracer = tracer_provider.get_tracer(__name__)
         
         with tracer.start_as_current_span("test") as span:
@@ -61,7 +63,7 @@ class TestLLMMetrics:
         
         assert time_to_first_token_found, "time_to_first_token metric not found"
 
-    def test_time_per_output_token_metric(self, meter_provider):
+    def test_time_per_output_token_metric(self, meter_provider, tracer_provider):
         """Test that time_per_output_token metric is recorded."""
         provider, reader = meter_provider
         meter = provider.get_meter(__name__)
@@ -74,10 +76,6 @@ class TestLLMMetrics:
             monotonic_start_s=0.0,
         )
 
-        from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
-
-        tracer_provider = TracerProvider()
         tracer = tracer_provider.get_tracer(__name__)
         
         with tracer.start_as_current_span("test") as span:
@@ -97,7 +95,7 @@ class TestLLMMetrics:
         
         assert time_per_output_token_found, "time_per_output_token metric not found"
 
-    def test_time_between_token_metric(self, meter_provider):
+    def test_time_between_token_metric(self, meter_provider, tracer_provider):
         """Test that time_between_token metric is recorded."""
         provider, reader = meter_provider
         meter = provider.get_meter(__name__)
@@ -110,10 +108,6 @@ class TestLLMMetrics:
             monotonic_start_s=0.0,
         )
 
-        from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
-
-        tracer_provider = TracerProvider()
         tracer = tracer_provider.get_tracer(__name__)
         
         with tracer.start_as_current_span("test") as span:
@@ -133,7 +127,7 @@ class TestLLMMetrics:
         
         assert time_between_token_found, "time_between_token metric not found"
 
-    def test_cached_tokens_metric(self, meter_provider):
+    def test_cached_tokens_metric(self, meter_provider, tracer_provider):
         """Test that cached_tokens metric is recorded."""
         provider, reader = meter_provider
         meter = provider.get_meter(__name__)
@@ -146,10 +140,6 @@ class TestLLMMetrics:
             monotonic_start_s=0.0,
         )
 
-        from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
-
-        tracer_provider = TracerProvider()
         tracer = tracer_provider.get_tracer(__name__)
         
         with tracer.start_as_current_span("test") as span:
@@ -169,7 +159,7 @@ class TestLLMMetrics:
         
         assert cached_tokens_found, "cached_tokens metric not found"
 
-    def test_all_new_metrics_together(self, meter_provider):
+    def test_all_new_metrics_together(self, meter_provider, tracer_provider):
         """Test that all new metrics can be recorded together."""
         provider, reader = meter_provider
         meter = provider.get_meter(__name__)
@@ -187,10 +177,6 @@ class TestLLMMetrics:
             monotonic_start_s=0.0,
         )
 
-        from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
-
-        tracer_provider = TracerProvider()
         tracer = tracer_provider.get_tracer(__name__)
         
         with tracer.start_as_current_span("test") as span:
