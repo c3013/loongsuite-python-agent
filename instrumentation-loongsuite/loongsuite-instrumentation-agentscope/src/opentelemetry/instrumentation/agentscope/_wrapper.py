@@ -125,9 +125,9 @@ class AgentScopeChatModelWrapper:
                     end_time = timeit.default_timer()
                     total_time = end_time - invocation.monotonic_start_s
                     
-                    # Time per output token (only set if we have actual token count)
-                    # Note: We prefer not to use chunk count as it doesn't reliably
-                    # correspond to token count and could produce misleading metrics
+                    # Time per output token (using actual output token count from API response)
+                    # Note: We only calculate this metric when actual token count is available
+                    # from the API response to ensure accuracy
                     if invocation.output_tokens is not None and invocation.output_tokens > 0:
                         invocation.time_per_output_token_s = (
                             total_time / invocation.output_tokens
