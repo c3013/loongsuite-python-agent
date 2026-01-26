@@ -116,15 +116,15 @@ class ExtendedInvocationMetricsRecorder(InvocationMetricsRecorder):
         if isinstance(invocation, LLMInvocation):
             self.record(span, invocation, error_type=error_type)
             return
-        
+
         if isinstance(invocation, InvokeAgentInvocation):
             self._record_agent_duration(span, invocation, error_type)
             return
-        
+
         if isinstance(invocation, ExecuteToolInvocation):
             self._record_tool_duration(span, invocation, error_type)
             return
-        
+
         # TODO: Implement other invocation types as needed
 
     def _record_agent_duration(
@@ -150,12 +150,12 @@ class ExtendedInvocationMetricsRecorder(InvocationMetricsRecorder):
             and duration_seconds >= 0
         ):
             attributes: Dict[str, AttributeValue] = {}
-            
+
             # Add gen_ai.operation.name attribute (always set for agent operations)
             attributes[GenAI.GEN_AI_OPERATION_NAME] = (
                 GenAI.GenAiOperationNameValues.INVOKE_AGENT.value
             )
-            
+
             # Add error.type if present
             if error_type:
                 attributes["error.type"] = error_type
@@ -190,11 +190,11 @@ class ExtendedInvocationMetricsRecorder(InvocationMetricsRecorder):
             and duration_seconds >= 0
         ):
             attributes: Dict[str, AttributeValue] = {}
-            
+
             # Add gen_ai.tool.name attribute
             if invocation.tool_name:
                 attributes["gen_ai.tool.name"] = invocation.tool_name
-            
+
             # Add error.type if present
             if error_type:
                 attributes["error.type"] = error_type
