@@ -10,6 +10,7 @@ OpenTelemetry instrumentation for [AgentScope](https://github.com/agentscope-ai/
   - **Workflow spans**: Infrastructure ready for `gen_ai.workflow.name`, `gen_ai.input.messages`, `gen_ai.output.messages` when workflows are added
 - **Metrics**: Performance metrics following OpenTelemetry GenAI semantic conventions
   - `gen_ai.client.operation.duration`: Operation duration in seconds
+  - `gen_ai.client.operation`: LLM operation count histogram
   - `gen_ai.client.token.usage`: Token usage for input and output
   - `gen_ai.client.time_to_first_token`: Time to first token for streaming responses (seconds)
   - `gen_ai.client.time_per_output_token`: Average time per output token (seconds)

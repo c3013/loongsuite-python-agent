@@ -141,3 +141,13 @@ def create_tool_duration_histogram(meter: Meter) -> Histogram:
         explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,
     )
 
+
+def create_client_operation_histogram(meter: Meter) -> Histogram:
+    """Create histogram for GenAI client operation count metric."""
+    return meter.create_histogram(
+        name="gen_ai.client.operation",
+        description="GenAI client operations",
+        unit="{operation}",
+        explicit_bucket_boundaries_advisory=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+    )
+

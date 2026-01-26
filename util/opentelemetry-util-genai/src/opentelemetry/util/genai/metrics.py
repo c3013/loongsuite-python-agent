@@ -13,6 +13,7 @@ from opentelemetry.semconv._incubating.attributes import (
 from opentelemetry.trace import Span, set_span_in_context
 from opentelemetry.util.genai.instruments import (
     create_cached_tokens_histogram,
+    create_client_operation_histogram,
     create_duration_histogram,
     create_time_between_token_histogram,
     create_time_per_output_token_histogram,
@@ -40,6 +41,9 @@ class InvocationMetricsRecorder:
         )
         self._cached_tokens_histogram: Histogram = (
             create_cached_tokens_histogram(meter)
+        )
+        self._client_operation_histogram: Histogram = (
+            create_client_operation_histogram(meter)
         )
 
     def record(
@@ -149,6 +153,13 @@ class InvocationMetricsRecorder:
                 attributes=attributes,
                 context=span_context,
             )
+
+        # Record operation count (always 1 for each LLM operation)
+        self._client_operation_histogram.record(
+            1,
+            attributes=attributes,
+            context=span_context,
+        )
 
 
 __all__ = ["InvocationMetricsRecorder"]
