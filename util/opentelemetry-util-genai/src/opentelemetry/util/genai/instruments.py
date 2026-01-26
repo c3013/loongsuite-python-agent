@@ -148,6 +148,6 @@ def create_client_operation_histogram(meter: Meter) -> Histogram:
         name="gen_ai.client.operation",
         description="GenAI client operations",
         unit="{operation}",
-        explicit_bucket_boundaries_advisory=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024],
+        explicit_bucket_boundaries_advisory=[1, 2, 4, 8, 16],
     )
 
