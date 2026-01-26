@@ -12,7 +12,12 @@ from opentelemetry.semconv._incubating.attributes import (
 )
 from opentelemetry.trace import Span, set_span_in_context
 from opentelemetry.util.genai.instruments import (
+    create_cached_tokens_histogram,
+    create_client_operation_histogram,
     create_duration_histogram,
+    create_time_between_token_histogram,
+    create_time_per_output_token_histogram,
+    create_time_to_first_token_histogram,
     create_token_histogram,
 )
 from opentelemetry.util.genai.types import LLMInvocation
@@ -25,6 +30,21 @@ class InvocationMetricsRecorder:
     def __init__(self, meter: Meter):
         self._duration_histogram: Histogram = create_duration_histogram(meter)
         self._token_histogram: Histogram = create_token_histogram(meter)
+        self._time_to_first_token_histogram: Histogram = (
+            create_time_to_first_token_histogram(meter)
+        )
+        self._time_per_output_token_histogram: Histogram = (
+            create_time_per_output_token_histogram(meter)
+        )
+        self._time_between_token_histogram: Histogram = (
+            create_time_between_token_histogram(meter)
+        )
+        self._cached_tokens_histogram: Histogram = (
+            create_cached_tokens_histogram(meter)
+        )
+        self._client_operation_histogram: Histogram = (
+            create_client_operation_histogram(meter)
+        )
 
     def record(
         self,
@@ -96,6 +116,50 @@ class InvocationMetricsRecorder:
                 },  # LoongSuite Extension: For Python 3.8 Compatibility
                 context=span_context,
             )
+
+        # Record new LLM-specific timing metrics
+        if invocation.time_to_first_token_s is not None and isinstance(
+            invocation.time_to_first_token_s, Number
+        ):
+            self._time_to_first_token_histogram.record(
+                invocation.time_to_first_token_s,
+                attributes=attributes,
+                context=span_context,
+            )
+
+        if invocation.time_per_output_token_s is not None and isinstance(
+            invocation.time_per_output_token_s, Number
+        ):
+            self._time_per_output_token_histogram.record(
+                invocation.time_per_output_token_s,
+                attributes=attributes,
+                context=span_context,
+            )
+
+        if invocation.time_between_token_s is not None and isinstance(
+            invocation.time_between_token_s, Number
+        ):
+            self._time_between_token_histogram.record(
+                invocation.time_between_token_s,
+                attributes=attributes,
+                context=span_context,
+            )
+
+        if invocation.cached_tokens is not None and isinstance(
+            invocation.cached_tokens, Number
+        ):
+            self._cached_tokens_histogram.record(
+                invocation.cached_tokens,
+                attributes=attributes,
+                context=span_context,
+            )
+
+        # Record operation count (always 1 for each LLM operation)
+        self._client_operation_histogram.record(
+            1,
+            attributes=attributes,
+            context=span_context,
+        )
 
 
 __all__ = ["InvocationMetricsRecorder"]

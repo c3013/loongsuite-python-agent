@@ -5,9 +5,20 @@ OpenTelemetry instrumentation for [AgentScope](https://github.com/agentscope-ai/
 ## Features
 
 - **Traces**: Distributed tracing for agents, LLMs, tools, and formatters
+  - **Agent spans**: Include `gen_ai.operation.name`, `gen_ai.agent.id`, `gen_ai.input.messages`, `gen_ai.output.messages`
+  - **Tool spans**: Include `gen_ai.operation.name`, `gen_ai.tool.call.id`, `gen_ai.tool.name`, `gen_ai.tool.type`, `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`
+  - **Workflow spans**: Infrastructure ready for `gen_ai.workflow.name`, `gen_ai.input.messages`, `gen_ai.output.messages` when workflows are added
 - **Metrics**: Performance metrics following OpenTelemetry GenAI semantic conventions
   - `gen_ai.client.operation.duration`: Operation duration in seconds
+  - `gen_ai.client.operation`: LLM operation count histogram
   - `gen_ai.client.token.usage`: Token usage for input and output
+  - `gen_ai.client.time_to_first_token`: Time to first token for streaming responses (seconds)
+  - `gen_ai.client.time_per_output_token`: Average time per output token (seconds)
+  - `gen_ai.client.time_between_token`: Average time between consecutive tokens (seconds)
+  - `gen_ai.usage.prompt_tokens_details.cached_tokens`: Number of cached tokens from prompt
+  - `gen_ai.agent.duration`: Duration of agent operations (with `gen_ai.operation.name`, `error.type` tags)
+  - `gen_ai.workflow.duration`: Duration of workflow operations (with `gen_ai.workflow.name`, `error.type` tags)
+  - `gen_ai.tool.duration`: Duration of tool operations (with `gen_ai.tool.name`, `error.type` tags)
 - **Events**: Detailed event logging for messages and choices
 
 ## Installation
@@ -67,10 +78,12 @@ opentelemetry-instrument python your_app.py
 
 ### Content Capture
 
-Control message content capture using environment variables:
+Control message content and sensitive data capture using environment variables:
 
 ```bash
 # Enable experimental GenAI semantic conventions
+# Required for capturing: gen_ai.input.messages, gen_ai.output.messages,
+# gen_ai.tool.call.arguments, gen_ai.tool.call.result attributes
 export OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental
 
 # Capture content in spans only

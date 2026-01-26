@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import timeit
 from functools import wraps
 from typing import Any, AsyncGenerator
 
@@ -32,6 +33,21 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_cached_tokens(usage):
+    """Extract cached tokens from usage object if available.
+    
+    Args:
+        usage: Usage object that may contain prompt_tokens_details
+        
+    Returns:
+        Number of cached tokens or None
+    """
+    prompt_tokens_details = getattr(usage, "prompt_tokens_details", None)
+    if prompt_tokens_details is not None:
+        return getattr(prompt_tokens_details, "cached_tokens", None)
+    return None
 
 
 class AgentScopeChatModelWrapper:
@@ -57,7 +73,29 @@ class AgentScopeChatModelWrapper:
         """Wrap streaming response to update invocation when done."""
         try:
             last_chunk = None
+            first_token_time = None
+            prev_token_time = None
+            time_diffs_sum = 0.0
+            time_diffs_count = 0
+            chunk_count = 0
+            
             async for chunk in generator:
+                chunk_count += 1
+                current_time = timeit.default_timer()
+                
+                # Record time to first token
+                if first_token_time is None and invocation.monotonic_start_s is not None:
+                    first_token_time = current_time
+                    invocation.time_to_first_token_s = (
+                        first_token_time - invocation.monotonic_start_s
+                    )
+                
+                # Calculate time between tokens incrementally to save memory
+                if prev_token_time is not None:
+                    time_diffs_sum += current_time - prev_token_time
+                    time_diffs_count += 1
+                
+                prev_token_time = current_time
                 last_chunk = chunk
                 yield chunk
 
@@ -73,9 +111,33 @@ class AgentScopeChatModelWrapper:
                     invocation.output_tokens = getattr(
                         last_chunk.usage, "output_tokens", None
                     )
+                    
+                    # Extract cached tokens if available
+                    invocation.cached_tokens = _extract_cached_tokens(
+                        last_chunk.usage
+                    )
 
                 if hasattr(last_chunk, "id"):
                     invocation.response_id = getattr(last_chunk, "id", None)
+                
+                # Calculate timing metrics
+                if chunk_count > 0 and invocation.monotonic_start_s is not None:
+                    end_time = timeit.default_timer()
+                    total_time = end_time - invocation.monotonic_start_s
+                    
+                    # Time per output token (using actual output token count from API response)
+                    # Note: We only calculate this metric when actual token count is available
+                    # from the API response to ensure accuracy
+                    if invocation.output_tokens is not None and invocation.output_tokens > 0:
+                        invocation.time_per_output_token_s = (
+                            total_time / invocation.output_tokens
+                        )
+                    
+                    # Average time between consecutive tokens (calculated incrementally)
+                    if time_diffs_count > 0:
+                        invocation.time_between_token_s = (
+                            time_diffs_sum / time_diffs_count
+                        )
 
             self._handler.stop_llm(invocation)
         except Exception as e:
@@ -141,6 +203,11 @@ class AgentScopeChatModelWrapper:
                     )
                     invocation.output_tokens = getattr(
                         result.usage, "output_tokens", None
+                    )
+                    
+                    # Extract cached tokens if available
+                    invocation.cached_tokens = _extract_cached_tokens(
+                        result.usage
                     )
 
                 invocation.response_model = invocation.request_model
