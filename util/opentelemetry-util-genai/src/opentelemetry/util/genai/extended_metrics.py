@@ -151,11 +151,10 @@ class ExtendedInvocationMetricsRecorder(InvocationMetricsRecorder):
         ):
             attributes: Dict[str, AttributeValue] = {}
             
-            # Add gen_ai.operation.name attribute
-            if invocation.agent_name:
-                attributes[GenAI.GEN_AI_OPERATION_NAME] = (
-                    GenAI.GenAiOperationNameValues.INVOKE_AGENT.value
-                )
+            # Add gen_ai.operation.name attribute (always set for agent operations)
+            attributes[GenAI.GEN_AI_OPERATION_NAME] = (
+                GenAI.GenAiOperationNameValues.INVOKE_AGENT.value
+            )
             
             # Add error.type if present
             if error_type:
