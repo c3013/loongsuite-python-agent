@@ -5,6 +5,9 @@ OpenTelemetry instrumentation for [AgentScope](https://github.com/agentscope-ai/
 ## Features
 
 - **Traces**: Distributed tracing for agents, LLMs, tools, and formatters
+  - **Agent spans**: Include `gen_ai.operation.name`, `gen_ai.agent.id`, `gen_ai.input.messages`, `gen_ai.output.messages`
+  - **Tool spans**: Include `gen_ai.operation.name`, `gen_ai.tool.call.id`, `gen_ai.tool.name`, `gen_ai.tool.type`, `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`
+  - **Workflow spans**: Infrastructure ready for `gen_ai.workflow.name`, `gen_ai.input.messages`, `gen_ai.output.messages` when workflows are added
 - **Metrics**: Performance metrics following OpenTelemetry GenAI semantic conventions
   - `gen_ai.client.operation.duration`: Operation duration in seconds
   - `gen_ai.client.token.usage`: Token usage for input and output
@@ -74,13 +77,13 @@ opentelemetry-instrument python your_app.py
 
 ### Content Capture
 
-Control message content capture using environment variables:
+Control message content and sensitive data capture using environment variables:
 
 ```bash
-# Enable experimental GenAI semantic conventions
+# Enable experimental GenAI semantic conventions (required for message and tool data capture)
 export OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental
 
-# Capture content in spans only
+# Capture content in spans only (captures gen_ai.input.messages, gen_ai.output.messages, gen_ai.tool.call.arguments, gen_ai.tool.call.result)
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
 
 # Capture content in events only
