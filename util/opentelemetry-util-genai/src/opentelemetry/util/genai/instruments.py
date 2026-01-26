@@ -111,3 +111,33 @@ def create_cached_tokens_histogram(meter: Meter) -> Histogram:
         explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_TOKEN_USAGE_BUCKETS,
     )
 
+
+def create_agent_duration_histogram(meter: Meter) -> Histogram:
+    """Create histogram for agent operation duration metric."""
+    return meter.create_histogram(
+        name="gen_ai.agent.duration",
+        description="Duration of agent operations",
+        unit="s",
+        explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,
+    )
+
+
+def create_workflow_duration_histogram(meter: Meter) -> Histogram:
+    """Create histogram for workflow operation duration metric."""
+    return meter.create_histogram(
+        name="gen_ai.workflow.duration",
+        description="Duration of workflow operations",
+        unit="s",
+        explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,
+    )
+
+
+def create_tool_duration_histogram(meter: Meter) -> Histogram:
+    """Create histogram for tool operation duration metric."""
+    return meter.create_histogram(
+        name="gen_ai.tool.duration",
+        description="Duration of tool operations",
+        unit="s",
+        explicit_bucket_boundaries_advisory=_GEN_AI_CLIENT_OPERATION_DURATION_BUCKETS,
+    )
+
